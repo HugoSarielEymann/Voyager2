@@ -1,0 +1,35 @@
+{
+  "name": "Rename GetUser Methods",
+  "description": "Rename all GetUser methods to FetchUser in the UserService",
+  "targetProject": "MyApp",
+  "filePatterns": [
+    "Services/*.cs",
+    "Repositories/*.cs"
+  ],
+  "selections": [
+    {
+      "name": "GetUser methods",
+      "type": "methods",
+      "filters": {
+        "nameContaining": "GetUser",
+        "isPublic": true
+      },
+      "description": "Find all public methods containing 'GetUser'"
+    }
+  ],
+  "transformations": [
+    {
+      "name": "Rename GetUser to FetchUser",
+      "type": "rename",
+      "target": "GetUser",
+      "parameters": {
+        "newName": "FetchUser",
+        "type": "method"
+      },
+      "description": "Rename method GetUser to FetchUser",
+      "applyToAll": true
+    }
+  ],
+  "outputDirectory": "./output/rename",
+  "createBackup": true
+}

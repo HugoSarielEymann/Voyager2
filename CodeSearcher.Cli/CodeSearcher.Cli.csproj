@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>CodeSearcher.Cli</RootNamespace>
+    <StartupObject>CodeSearcher.Cli.Program</StartupObject>
+    <Version>1.0.0</Version>
+    <Title>CodeSearcher CLI</Title>
+    <Description>Interactive CLI tool for code transformation and analysis</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CodeSearcher.Core\CodeSearcher.Core.csproj" />
+    <ProjectReference Include="..\CodeSearcher.Editor\CodeSearcher.Editor.csproj" />
+  </ItemGroup>
+
+</Project>

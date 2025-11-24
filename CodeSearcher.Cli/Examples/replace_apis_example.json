@@ -1,0 +1,35 @@
+{
+  "name": "Replace Deprecated APIs",
+  "description": "Replace old API calls with new ones",
+  "targetProject": "MyApp",
+  "filePatterns": [
+    "**/*.cs"
+  ],
+  "selections": [],
+  "transformations": [
+    {
+      "name": "Replace int.Parse with int.TryParse",
+      "type": "replace",
+      "target": "int.Parse",
+      "parameters": {
+        "oldCode": "int.Parse(value)",
+        "newCode": "int.TryParse(value, out int result) ? result : 0"
+      },
+      "description": "Safer integer parsing",
+      "applyToAll": true
+    },
+    {
+      "name": "Replace GetOrdinalIgnoreCase",
+      "type": "replace",
+      "target": "OrdinalIgnoreCase",
+      "parameters": {
+        "oldCode": "StringComparison.OrdinalIgnoreCase",
+        "newCode": "StringComparison.CurrentCultureIgnoreCase"
+      },
+      "description": "Update string comparison",
+      "applyToAll": true
+    }
+  ],
+  "outputDirectory": "./output/api_migration",
+  "createBackup": true
+}

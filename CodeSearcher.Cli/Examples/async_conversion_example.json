@@ -1,0 +1,44 @@
+{
+  "name": "Convert Sync to Async",
+  "description": "Convert synchronous repository methods to asynchronous Task<T>",
+  "targetProject": "MyApp.Data",
+  "filePatterns": [
+    "Repositories/*.cs"
+  ],
+  "selections": [
+    {
+      "name": "Repository methods",
+      "type": "methods",
+      "filters": {
+        "nameContaining": "Get",
+        "isPublic": true
+      },
+      "description": "Find all public Get* methods"
+    }
+  ],
+  "transformations": [
+    {
+      "name": "Add Async suffix",
+      "type": "rename",
+      "target": "GetUserById",
+      "parameters": {
+        "newName": "GetUserByIdAsync",
+        "type": "method"
+      },
+      "description": "Rename method to add Async suffix",
+      "applyToAll": false
+    },
+    {
+      "name": "Wrap returns in Task",
+      "type": "wrapReturnsinTask",
+      "target": "GetUserByIdAsync",
+      "parameters": {
+        "style": "TaskFromResult"
+      },
+      "description": "Convert method to return Task<T>",
+      "applyToAll": false
+    }
+  ],
+  "outputDirectory": "./output/async_conversion",
+  "createBackup": true
+}

@@ -1,0 +1,44 @@
+{
+  "name": "Add Error Handling",
+  "description": "Add try-catch blocks to critical methods",
+  "targetProject": "MyApp.Services",
+  "filePatterns": [
+    "Services/*.cs"
+  ],
+  "selections": [
+    {
+      "name": "Public service methods",
+      "type": "methods",
+      "filters": {
+        "isPublic": true
+      },
+      "description": "Find all public methods"
+    }
+  ],
+  "transformations": [
+    {
+      "name": "Add try-catch to SendEmail",
+      "type": "wrap",
+      "target": "SendEmail",
+      "parameters": {
+        "wrapType": "trycatch",
+        "handler": "return false;"
+      },
+      "description": "Wrap SendEmail method with try-catch",
+      "applyToAll": false
+    },
+    {
+      "name": "Add logging to ProcessData",
+      "type": "wrap",
+      "target": "ProcessData",
+      "parameters": {
+        "wrapType": "logging",
+        "handler": "Console.WriteLine(\"Processing data...\");"
+      },
+      "description": "Add logging at start of ProcessData",
+      "applyToAll": false
+    }
+  ],
+  "outputDirectory": "./output/error_handling",
+  "createBackup": true
+}

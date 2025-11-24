@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="CodeSearcher.Core/CodeSearcher.Core.csproj" />
+  <Project Path="CodeSearcher.Editor/CodeSearcher.Editor.csproj" />
+  <Project Path="CodeSearcher.Tests/CodeSearcher.Tests.csproj" />
+</Solution>
