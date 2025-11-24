@@ -1,365 +1,570 @@
-# CodeSearcher - C# Code Analysis & Modification Library
+# CodeSearcher
 
-Une bibliothèque complète pour **requêter, analyser et modifier du code C#** en utilisant une API fluente basée sur Roslyn/CodeAnalysis.
+**Bibliothèque .NET pour rechercher et modifier du code C# par programmation**
 
-## ?? Architecture
+CodeSearcher permet d'analyser, chercher et transformer du code C# en utilisant une API fluide basée sur Roslyn.
 
-Le projet est divisé en **deux phases** :
+---
 
-### **Phase 1 : CodeSearcher.Core** - Requêtes de Code
-Permet de **rechercher et sélectionner du code C#** avec une syntaxe LINQ-like fluente.
+## ?? Ce que ça apporte
 
-### **Phase 2 : CodeSearcher.Editor** - Modification de Code  
-Permet de **modifier, renommer et transformer du code C#** de manière programmatique.
+- **Recherche de code** : Trouvez méthodes, classes, variables et retours avec des filtres puissants
+- **Modification de code** : Renommez, wrappez, transformez du code de manière fluide
+- **Analyse conditionnelle** : Identifiez les chemins d'exécution et conditions
+- **API fluide** : Syntaxe naturelle et chainable
+- **CLI interactif** : Outil en ligne de commande pour transformations batch
+
+---
+
+## ?? Projets
+
+| Projet | Description |
+|--------|-------------|
+| `CodeSearcher.Core` | Moteur de recherche et analyse de code |
+| `CodeSearcher.Editor` | Opérations de modification de code |
+| `CodeSearcher.Cli` | Interface en ligne de commande |
+| `CodeSearcher.Tests` | Tests unitaires et d'intégration |
+
+---
 
 ## ?? Installation
 
 ```bash
-cd CodeSearcher
-dotnet build
+dotnet add package CodeSearcher.Core
+dotnet add package CodeSearcher.Editor
+```
+
+---
+
+## ?? Utilisation
+
+### 1?? **Recherche de code**
+
+```csharp
+using CodeSearcher.Core;
+
+// Charger du code
+var context = CodeContext.FromCode(sourceCode);
+// ou
+var context = CodeContext.FromFile("MyClass.cs");
+
+// Chercher des méthodes
+var asyncMethods = context.FindMethods()
+    .IsAsync()
+    .ReturningTask()
+    .IsPublic()
+    .Execute();
+
+// Chercher des classes
+var controllers = context.FindClasses()
+    .WithNameContaining("Controller")
+    .IsPublic()
+    .Implements("IController")
+    .Execute();
+
+// Chercher des variables
+var variables = context.FindVariables()
+    .WithName("userId")
+    .OfType("int")
+    .Execute();
+
+// Chercher des returns
+var returns = context.FindReturns()
+    .WithValue("null")
+    .InMethod("GetUser")
+    .Execute();
+```
+
+### 2?? **Modification de code**
+
+```csharp
+using CodeSearcher.Editor;
+
+// Créer un éditeur
+var editor = CodeEditor.FromCode(sourceCode);
+
+// Renommer
+editor.RenameMethod("OldName", "NewName")
+      .RenameClass("User", "Customer")
+      .RenameVariable("temp", "result");
+
+// Wrapper avec try-catch
+editor.WrapWithTryCatch("ProcessData");
+
+// Wrapper avec logging
+editor.WrapWithLogging("SaveUser", "Console.WriteLine(\"Saving...\");");
+
+// Transformer en async/Task
+editor.WrapReturnsInTask("GetData");
+
+// Remplacer du code
+editor.Replace("var x = 0;", "var x = 10;");
+
+// Appliquer les modifications
+var result = editor.Apply();
+if (result.Success)
+{
+    Console.WriteLine(result.ModifiedCode);
+    editor.SaveToFile("output.cs");
+}
+```
+
+### 3?? **Analyse conditionnelle**
+
+```csharp
+// Trouver les conditions menant à une instruction
+var paths = context.FindConditionsLeadingTo(statement);
+
+foreach (var path in paths)
+{
+    Console.WriteLine($"Condition: {path.Condition}");
+    Console.WriteLine($"Type: {path.Type}"); // If, While, Switch, etc.
+    Console.WriteLine($"Branch: {path.BranchTaken}");
+}
+
+// Vérifier l'atteignabilité
+bool isReachable = context.IsStatementReachable(statement);
+bool isAlwaysExecuted = context.IsStatementUnconditionallyReachable(statement);
+```
+
+### 4?? **CLI - Transformations en batch**
+
+```bash
+cd CodeSearcher.Cli
+dotnet run config.json
+```
+
+Fichier de configuration :
+```json
+{
+  "name": "Convertir en Async",
+  "filePatterns": ["*.cs"],
+  "transformations": [
+    {
+      "type": "wrapReturnsinTask",
+      "target": "GetUser",
+      "parameters": { "style": "TaskFromResult" }
+    }
+  ]
+}
+```
+
+Voir `CodeSearcher.Cli/README.md` pour plus de détails.
+
+---
+
+## ?? Filtres disponibles
+
+### Méthodes
+- `WithName(string)` / `WithNameContaining(string)`
+- `IsAsync()` / `IsPublic()` / `IsPrivate()` / `IsProtected()`
+- `ReturningTask()` / `ReturningTask<T>()` / `ReturningType(string)`
+- `HasParameterCount(int)` / `HasParameter(predicate)`
+- `WithAttribute(string)`
+
+### Classes
+- `WithName(string)` / `WithNameContaining(string)`
+- `IsPublic()` / `IsAbstract()` / `IsSealed()`
+- `InNamespace(string)`
+- `Inherits(string)` / `Implements(string)`
+- `WithAttribute(string)`
+- `WithMemberCount(int, predicate)`
+
+### Variables
+- `WithName(string)` / `OfType(string)`
+- `InMethod(string)` / `InClass(string)`
+- `IsConst()` / `WithInitializer(predicate)`
+
+### Returns
+- `WithValue(string)` / `WithType(string)`
+- `InMethod(string)` / `InClass(string)`
+
+---
+
+## ?? Exemples pratiques
+
+**Trouver toutes les méthodes async publiques retournant Task<User>**
+```csharp
+var methods = context.FindMethods()
+    .IsAsync()
+    .IsPublic()
+    .ReturningTask<User>()
+    .Execute();
+```
+
+**Ajouter try-catch à toutes les méthodes sans gestion d'erreurs**
+```csharp
+var editor = CodeEditor.FromFile("Service.cs");
+foreach (var method in unsafeMethods)
+{
+    editor.WrapWithTryCatch(method.Identifier.Text);
+}
+editor.Apply();
+```
+
+**Renommer une classe et toutes ses références**
+```csharp
+editor.RenameClass("OldUser", "Customer")
+      .RenameProperty("UserName", "CustomerName")
+      .Apply();
+```
+
+**Convertir des méthodes sync en async (batch)**
+```csharp
+var editor = CodeEditor.FromFile("Repository.cs");
+editor.WrapReturnsInTask("GetById")
+      .WrapReturnsInTask("GetAll")
+      .WrapReturnsInTask("Save");
+var result = editor.Apply();
+```
+
+---
+
+## ?? Tests
+
+```bash
 dotnet test
 ```
 
-## ?? Tests
-
-- **Phase 1** : 51 tests ?
-- **Phase 2** : 10 tests ?
-- **Total** : 61 tests passants
-
-```bash
-dotnet test CodeSearcher.sln --verbosity minimal
-```
+Les tests incluent :
+- Tests unitaires pour chaque query
+- Tests d'intégration pour les transformations
+- Tests de scénarios réels
 
 ---
 
-## Phase 1 : CodeSearcher.Core - Requêtes
+## ??? Architecture
 
-### Utilisation Basique
+- **Core** : Roslyn-based parsing et querying
+- **Editor** : Strategy pattern pour les transformations
+- **Logging** : Interface `ILogger` injectable pour debugging
+- **Async** : Support complet async/await et `Task<T>`
+- **CLI** : Configuration JSON pour automatisation
 
-```csharp
-// Charger du code depuis une chaîne
-var context = CodeContext.FromCode(codeString);
-
-// Ou depuis un fichier
-var context = CodeContext.FromFile("MyClass.cs");
-```
-
-### Requêtes Simples
-
-```csharp
-// Trouver une méthode spécifique
-var method = context.FindMethods()
-    .WithName("ProcessData")
-    .FirstOrDefault();
-
-// Trouver toutes les classes publiques
-var classes = context.FindClasses()
-    .IsPublic()
-    .Execute();
-
-// Trouver les variables de type string
-var strings = context.FindVariables()
-    .WithType("string")
-    .Execute();
-
-// Trouver les return statements
-var returns = context.FindReturns()
-    .InMethod("GetData")
-    .Execute();
-```
-
-### Requêtes Chaînées Complexes
-
-```csharp
-// Toutes les méthodes publiques, async, retournant Task
-var asyncPublicMethods = context.FindMethods()
-    .IsPublic()
-    .IsAsync()
-    .ReturningTask()
-    .Execute();
-
-// Classes publiques implémentant IDisposable
-var disposableClas = context.FindClasses()
-    .IsPublic()
-    .Implements("IDisposable")
-    .Execute();
-
-// Variables readonly de type string
-var readOnlyStrings = context.FindVariables()
-    .IsReadOnly()
-    .WithType("string")
-    .Execute();
-```
-
-### API MethodQuery
-
-```csharp
-.WithName(name)                 // Nom exact
-.WithNameContaining(partial)    // Nom contenant
-.ReturningTask()                // Retournant Task<T>
-.ReturningTask<T>()             // Task<T> spécifique
-.ReturningType(typeName)        // Type de retour
-.IsAsync()                      // Méthodes async
-.IsPublic/IsPrivate/IsProtected() // Visibilité
-.HasParameterCount(n)           // Nombre de paramètres
-.HasParameter(predicate)        // Filtre personnalisé
-.WithAttribute(name)            // Avec attribut
-```
-
-### API ClassQuery
-
-```csharp
-.WithName(name)
-.WithNameContaining(partial)
-.InNamespace(namespace)
-.WithAttribute(name)
-.IsAbstract()
-.IsSealed()
-.IsPublic()
-.Inherits(baseName)
-.Implements(interfaceName)
-.WithMemberCount(count, predicate)
-```
-
-### API VariableQuery
-
-```csharp
-.WithName(name)
-.WithNameContaining(partial)
-.WithType(typeName)
-.WithAttribute(name)
-.IsPublic/IsPrivate/IsProtected()
-.IsReadOnly()
-.WithInitializer()
-```
-
-### API ReturnQuery
-
-```csharp
-.InMethod(methodName)
-.ReturningType(typeName)
-.ReturningNull()
-.WithExpression(predicate)
-```
+### Pattern Strategy
+Les transformations utilisent le pattern Strategy :
+- `RenameStrategy` : Renommage d'éléments
+- `WrapperStrategy` : Wrapper try-catch, logging, etc.
+- `ReturnTypeWrapperStrategy` : Conversion sync ? async
 
 ---
 
-## Phase 2 : CodeSearcher.Editor - Modification
+## ?? Cas d'usage
 
-### Utilisation Basique
-
-```csharp
-// Créer un éditeur
-var editor = CodeEditor.FromCode(codeString);
-
-// Ou depuis un fichier
-var editor = CodeEditor.FromFile("MyClass.cs");
-```
-
-### Renommage
-
-```csharp
-// Renommer une méthode
-var result = editor
-    .RenameMethod("GetUser", "FetchUser")
-    .Apply();
-
-// Renommer une classe
-editor.RenameClass("User", "Person");
-
-// Renommer une propriété
-editor.RenameProperty("Name", "FullName");
-
-// Renommer une variable
-editor.RenameVariable("temp", "temporary");
-```
-
-### Wrapping de Code
-
-```csharp
-// Ajouter un try-catch
-editor.WrapWithTryCatch("ProcessData", "throw;");
-
-// Ajouter du logging
-editor.WrapWithLogging("GetUser", "Logger.Info(\"Getting user\");");
-
-// Ajouter de la validation
-editor.WrapWithValidation("ProcessUser", "if (user == null) return;");
-```
-
-### Remplacement
-
-```csharp
-// Remplacer un snippet de code
-editor.Replace(
-    "new User { Name = \"Default\" }",
-    "User.CreateDefault()"
-);
-```
-
-### Opérations Chaînées
-
-```csharp
-var result = editor
-    .RenameMethod("OldMethod", "NewMethod")
-    .RenameClass("OldClass", "NewClass")
-    .Replace("oldPattern", "newPattern")
-    .WrapWithLogging("MyMethod", "Console.WriteLine(\"Called\");")
-    .Apply();
-
-if (result.Success)
-{
-    // Sauvegarder le code modifié
-    editor.SaveToFile("Modified.cs");
-    
-    // Ou obtenir le code directement
-    var modifiedCode = editor.GetCode();
-    
-    // Consulter le journal des modifications
-    foreach (var change in result.Changes)
-    {
-        Console.WriteLine(change);
-    }
-}
-else
-{
-    Console.WriteLine($"Erreur: {result.ErrorMessage}");
-}
-```
-
-### Gestion du Code
-
-```csharp
-// Obtenir le code actuel
-string current = editor.GetCode();
-
-// Obtenir le code original
-string original = editor.GetOriginalCode();
-
-// Réinitialiser au code original
-editor.Reset();
-
-// Effacer les opérations (garde le code actuel)
-editor.Clear();
-
-// Sauvegarder dans un fichier
-editor.SaveToFile("output.cs");
-
-// Consulter l'historique des modifications
-var log = editor.GetChangeLog();
-```
+1. **Migration de code legacy** : Renommer en masse des APIs obsolètes
+2. **Ajout de logging** : Wrapper automatiquement des méthodes critiques
+3. **Conversion async** : Migrer du code sync vers async/await
+4. **Analyse de code** : Identifier des patterns ou anti-patterns
+5. **Refactoring** : Renommer uniformément des classes/méthodes
+6. **Gestion d'erreurs** : Ajouter try-catch aux méthodes à risque
 
 ---
 
-## ?? Scénario Complet : Refactoring Legacy
+## ?? Ressources
 
-```csharp
-// Charger du code legacy
-var context = CodeContext.FromFile("LegacyService.cs");
-
-// 1. Analyser le code
-var asyncMethods = context.FindMethods()
-    .IsPublic()
-    .IsAsync()
-    .Execute()
-    .ToList();
-
-var taskMethods = context.FindMethods()
-    .ReturningTask()
-    .Execute()
-    .ToList();
-
-Console.WriteLine($"Found {asyncMethods.Count} async methods");
-Console.WriteLine($"Found {taskMethods.Count} methods returning Task");
-
-// 2. Modifier le code
-var editor = CodeEditor.FromFile("LegacyService.cs");
-
-editor
-    .RenameMethod("GetData", "FetchDataAsync")
-    .RenameClass("Service", "ModernService")
-    .WrapWithLogging("ProcessData", "Logger.Debug(\"Processing\");")
-    .Replace("var x =", "int x =")
-    .Apply();
-
-// 3. Sauvegarder
-editor.SaveToFile("ModernService.cs");
-
-// 4. Vérifier les modifications
-var changeLog = editor.GetChangeLog();
-foreach (var change in changeLog)
-{
-    Console.WriteLine($"? {change}");
-}
-```
+- **Core API** : Pour recherche et analyse programmatique
+- **Editor API** : Pour transformations programmatiques
+- **CLI** : Pour automatisation et batch processing
+  - Voir `CodeSearcher.Cli/README.md` pour le guide complet
+  - Exemples dans `CodeSearcher.Cli/Examples/`
 
 ---
 
-## ?? Cas d'Usage
+## ?? License
 
-### Migrations Automatiques
-- Renommer des méthodes/classes en masse
-- Mettre à jour les appels de méthodes
-- Refactoring de code legacy
-
-### Analyse de Code
-- Trouver toutes les méthodes async non attendues
-- Localiser les usages d'une API dépréciée
-- Identifier les classes sans interface publique
-
-### Génération & Transformation
-- Ajouter du logging automatique
-- Envelopper le code avec validation
-- Générer des wrappers
-
-### Audits
-- Compter les méthodes publiques
-- Analyser les dépendances
-- Vérifier les conventions de nommage
+MIT
 
 ---
-
-## ?? Tests
-
-Tous les tests utilisent des **fixtures de code réel** pour validar chaque fonctionnalité :
-
-```bash
-# Tests Phase 1 (Requêtes)
-dotnet test CodeSearcher.Tests --filter "MethodQueryTests or ClassQueryTests or VariableQueryTests or ReturnQueryTests"
-
-# Tests Phase 2 (Modification)
-dotnet test CodeSearcher.Tests --filter "CodeEditorTests"
-
-# Tests d'intégration
-dotnet test CodeSearcher.Tests --filter "Integration"
-```
-
----
-
-## ?? Licence
-
-MIT - Libre d'utilisation pour tout projet
 
 ## ?? Contribution
 
-Les contributions sont bienvenues ! N'hésitez pas à :
-- Signaler des bugs
-- Proposer de nouvelles fonctionnalités
-- Améliorer la documentation
-- Ajouter des tests
+Les contributions sont bienvenues ! Ouvrez une issue ou soumettez une PR.
 
 ---
 
-## ?? Roadmap
+**Happy Coding! ??**
+# CodeSearcher
 
-- [ ] **Phase 3** : CodeSearcher.Analyzer - Analyse statique avancée
-- [ ] **Phase 4** : CodeSearcher.Generator - Génération de code
-- [ ] CLI `codesearcher` pour utilisation en ligne de commande
-- [ ] Support des projets multi-fichiers
-- [ ] Caching pour améliorer les performances
+**Bibliothèque .NET pour rechercher et modifier du code C# par programmation**
+
+CodeSearcher permet d'analyser, chercher et transformer du code C# en utilisant une API fluide basée sur Roslyn.
 
 ---
 
-**Version** : 1.0.0  
-**Status** : ? Production Ready  
-**Tests** : 61/61 passants
+## ?? Ce que ça apporte
+
+- **Recherche de code** : Trouvez méthodes, classes, variables et retours avec des filtres puissants
+- **Modification de code** : Renommez, wrappez, transformez du code de manière fluide
+- **Analyse conditionnelle** : Identifiez les chemins d'exécution et conditions
+- **API fluide** : Syntaxe naturelle et chainable
+- **CLI interactif** : Outil en ligne de commande pour transformations batch
+
+---
+
+## ?? Projets
+
+| Projet | Description |
+|--------|-------------|
+| `CodeSearcher.Core` | Moteur de recherche et analyse de code |
+| `CodeSearcher.Editor` | Opérations de modification de code |
+| `CodeSearcher.Cli` | Interface en ligne de commande |
+| `CodeSearcher.Tests` | Tests unitaires et d'intégration |
+
+---
+
+## ?? Installation
+
+```bash
+dotnet add package CodeSearcher.Core
+dotnet add package CodeSearcher.Editor
+```
+
+---
+
+## ?? Utilisation
+
+### 1?? **Recherche de code**
+
+```csharp
+using CodeSearcher.Core;
+
+// Charger du code
+var context = CodeContext.FromCode(sourceCode);
+// ou
+var context = CodeContext.FromFile("MyClass.cs");
+
+// Chercher des méthodes
+var asyncMethods = context.FindMethods()
+    .IsAsync()
+    .ReturningTask()
+    .IsPublic()
+    .Execute();
+
+// Chercher des classes
+var controllers = context.FindClasses()
+    .WithNameContaining("Controller")
+    .IsPublic()
+    .Implements("IController")
+    .Execute();
+
+// Chercher des variables
+var variables = context.FindVariables()
+    .WithName("userId")
+    .OfType("int")
+    .Execute();
+
+// Chercher des returns
+var returns = context.FindReturns()
+    .WithValue("null")
+    .InMethod("GetUser")
+    .Execute();
+```
+
+### 2?? **Modification de code**
+
+```csharp
+using CodeSearcher.Editor;
+
+// Créer un éditeur
+var editor = CodeEditor.FromCode(sourceCode);
+
+// Renommer
+editor.RenameMethod("OldName", "NewName")
+      .RenameClass("User", "Customer")
+      .RenameVariable("temp", "result");
+
+// Wrapper avec try-catch
+editor.WrapWithTryCatch("ProcessData");
+
+// Wrapper avec logging
+editor.WrapWithLogging("SaveUser", "Console.WriteLine(\"Saving...\");");
+
+// Transformer en async/Task
+editor.WrapReturnsInTask("GetData");
+
+// Remplacer du code
+editor.Replace("var x = 0;", "var x = 10;");
+
+// Appliquer les modifications
+var result = editor.Apply();
+if (result.Success)
+{
+    Console.WriteLine(result.ModifiedCode);
+    editor.SaveToFile("output.cs");
+}
+```
+
+### 3?? **Analyse conditionnelle**
+
+```csharp
+// Trouver les conditions menant à une instruction
+var paths = context.FindConditionsLeadingTo(statement);
+
+foreach (var path in paths)
+{
+    Console.WriteLine($"Condition: {path.Condition}");
+    Console.WriteLine($"Type: {path.Type}"); // If, While, Switch, etc.
+    Console.WriteLine($"Branch: {path.BranchTaken}");
+}
+
+// Vérifier l'atteignabilité
+bool isReachable = context.IsStatementReachable(statement);
+bool isAlwaysExecuted = context.IsStatementUnconditionallyReachable(statement);
+```
+
+### 4?? **CLI - Transformations en batch**
+
+```bash
+cd CodeSearcher.Cli
+dotnet run config.json
+```
+
+Fichier de configuration :
+```json
+{
+  "name": "Convertir en Async",
+  "filePatterns": ["*.cs"],
+  "transformations": [
+    {
+      "type": "wrapReturnsinTask",
+      "target": "GetUser",
+      "parameters": { "style": "TaskFromResult" }
+    }
+  ]
+}
+```
+
+Voir `CodeSearcher.Cli/README.md` pour plus de détails.
+
+---
+
+## ?? Filtres disponibles
+
+### Méthodes
+- `WithName(string)` / `WithNameContaining(string)`
+- `IsAsync()` / `IsPublic()` / `IsPrivate()` / `IsProtected()`
+- `ReturningTask()` / `ReturningTask<T>()` / `ReturningType(string)`
+- `HasParameterCount(int)` / `HasParameter(predicate)`
+- `WithAttribute(string)`
+
+### Classes
+- `WithName(string)` / `WithNameContaining(string)`
+- `IsPublic()` / `IsAbstract()` / `IsSealed()`
+- `InNamespace(string)`
+- `Inherits(string)` / `Implements(string)`
+- `WithAttribute(string)`
+- `WithMemberCount(int, predicate)`
+
+### Variables
+- `WithName(string)` / `OfType(string)`
+- `InMethod(string)` / `InClass(string)`
+- `IsConst()` / `WithInitializer(predicate)`
+
+### Returns
+- `WithValue(string)` / `WithType(string)`
+- `InMethod(string)` / `InClass(string)`
+
+---
+
+## ?? Exemples pratiques
+
+**Trouver toutes les méthodes async publiques retournant Task<User>**
+```csharp
+var methods = context.FindMethods()
+    .IsAsync()
+    .IsPublic()
+    .ReturningTask<User>()
+    .Execute();
+```
+
+**Ajouter try-catch à toutes les méthodes sans gestion d'erreurs**
+```csharp
+var editor = CodeEditor.FromFile("Service.cs");
+foreach (var method in unsafeMethods)
+{
+    editor.WrapWithTryCatch(method.Identifier.Text);
+}
+editor.Apply();
+```
+
+**Renommer une classe et toutes ses références**
+```csharp
+editor.RenameClass("OldUser", "Customer")
+      .RenameProperty("UserName", "CustomerName")
+      .Apply();
+```
+
+**Convertir des méthodes sync en async (batch)**
+```csharp
+var editor = CodeEditor.FromFile("Repository.cs");
+editor.WrapReturnsInTask("GetById")
+      .WrapReturnsInTask("GetAll")
+      .WrapReturnsInTask("Save");
+var result = editor.Apply();
+```
+
+---
+
+## ?? Tests
+
+```bash
+dotnet test
+```
+
+Les tests incluent :
+- Tests unitaires pour chaque query
+- Tests d'intégration pour les transformations
+- Tests de scénarios réels
+
+---
+
+## ??? Architecture
+
+- **Core** : Roslyn-based parsing et querying
+- **Editor** : Strategy pattern pour les transformations
+- **Logging** : Interface `ILogger` injectable pour debugging
+- **Async** : Support complet async/await et `Task<T>`
+- **CLI** : Configuration JSON pour automatisation
+
+### Pattern Strategy
+Les transformations utilisent le pattern Strategy :
+- `RenameStrategy` : Renommage d'éléments
+- `WrapperStrategy` : Wrapper try-catch, logging, etc.
+- `ReturnTypeWrapperStrategy` : Conversion sync ? async
+
+---
+
+## ?? Cas d'usage
+
+1. **Migration de code legacy** : Renommer en masse des APIs obsolètes
+2. **Ajout de logging** : Wrapper automatiquement des méthodes critiques
+3. **Conversion async** : Migrer du code sync vers async/await
+4. **Analyse de code** : Identifier des patterns ou anti-patterns
+5. **Refactoring** : Renommer uniformément des classes/méthodes
+6. **Gestion d'erreurs** : Ajouter try-catch aux méthodes à risque
+
+---
+
+## ?? Ressources
+
+- **Core API** : Pour recherche et analyse programmatique
+- **Editor API** : Pour transformations programmatiques
+- **CLI** : Pour automatisation et batch processing
+  - Voir `CodeSearcher.Cli/README.md` pour le guide complet
+  - Exemples dans `CodeSearcher.Cli/Examples/`
+
+---
+
+## ?? License
+
+MIT
+
+---
+
+## ?? Contribution
+
+Les contributions sont bienvenues ! Ouvrez une issue ou soumettez une PR.
+
+---
+
+**Happy Coding! ??**
